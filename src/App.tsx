@@ -15,6 +15,8 @@ import {
   VideoOff, 
   PhoneOff,
   User,
+  Smile,
+  Sticker,
   Loader2,
   Lock,
   Unlock,
@@ -64,6 +66,14 @@ const decryptMessage = (cipherText) => {
     return "🔒 [Encrypted Message Unreadable]";
   }
 };
+
+function Avatar({ src, label, className = '' }) {
+  return src ? (
+    <img src={src} alt={`${label || 'User'} avatar`} className={`object-cover ${className}`} />
+  ) : (
+    <User className={className} aria-hidden="true" />
+  );
+}
 
 // --- HELPER FUNCTIONS ---
 function formatTimeAgo(timestamp) {
@@ -215,7 +225,7 @@ export default function App() {
         {activeTab === 'home' && <HomeFeed userProfile={userProfile} user={user} />}
         {activeTab === 'chat' && <E2EEChat userProfile={userProfile} user={user} selectedContact={selectedContact} />}
         {activeTab === 'reels' && <ReelsFeed user={user} />}
-        {activeTab === 'call' && <VideoCallMockup selectedContact={selectedContact} />}
+        {activeTab === 'call' && <VideoCallMockup selectedContact={selectedContact} user={user} />}
       </main>
 
       {/* Mobile Bottom Navigation */}
@@ -342,7 +352,7 @@ function Sidebar({ userProfile, setUserProfile, activeTab, setActiveTab, setSele
       <div className="p-4 m-4 bg-zinc-900/80 border border-white/10 rounded-2xl flex flex-col gap-4 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 border border-white/10 rounded-full flex items-center justify-center flex-shrink-0">
-             <User size={18} className="text-zinc-300" />
+             <Avatar src={userProfile?.avatarUrl} label={userProfile?.username} className="h-full w-full rounded-full text-zinc-300" />
           </div>
           <div className="flex flex-col overflow-hidden">
             <p className="text-sm font-bold truncate text-zinc-100">@{userProfile?.username}</p>
@@ -378,6 +388,7 @@ function Sidebar({ userProfile, setUserProfile, activeTab, setActiveTab, setSele
 
 function ProfileSettings({ userProfile, setUserProfile, onClose }) {
   const [username, setUsername] = useState(userProfile?.username || '');
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatarUrl || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -391,7 +402,7 @@ function ProfileSettings({ userProfile, setUserProfile, onClose }) {
     setSaving(true);
     setError('');
     try {
-      const updatedProfile = await api('/api/profile', { method: 'PUT', body: JSON.stringify({ username: normalized }) });
+      const updatedProfile = await api('/api/profile', { method: 'PUT', body: JSON.stringify({ username: normalized, avatarUrl }) });
       setUserProfile(updatedProfile);
       onClose();
     } catch (saveError) {
@@ -416,6 +427,28 @@ function ProfileSettings({ userProfile, setUserProfile, onClose }) {
             className="w-full rounded-xl border border-white/10 bg-zinc-950 py-2.5 pl-8 pr-3 text-white outline-none focus:border-cyan-500"
           />
         </div>
+        <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-white/15 bg-zinc-950 p-3 text-sm text-zinc-300 hover:border-cyan-500">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-zinc-800 text-zinc-500">
+            <Avatar src={avatarUrl} label={username} className="h-full w-full" />
+          </div>
+          <span>Choose profile picture</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              if (file.size > 140000) {
+                setError('Choose an image smaller than 140 KB.');
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => setAvatarUrl(String(reader.result));
+              reader.readAsDataURL(file);
+            }}
+          />
+        </label>
         {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
         <div className="mt-5 flex gap-2">
           <button type="button" onClick={onClose} className="flex-1 rounded-xl bg-white/5 py-2.5 text-sm text-zinc-300">Cancel</button>
@@ -487,8 +520,8 @@ function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId, mobil
         <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-zinc-900 shadow-xl">
           {results.map((profile) => (
             <div key={profile.id} className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-800 text-zinc-400">
-                <User size={13} />
+              <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-zinc-800 text-zinc-400">
+                <Avatar src={profile.avatarUrl} label={profile.username} className="h-full w-full" />
               </div>
               <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">@{profile.username}</span>
               <button
@@ -776,6 +809,8 @@ function E2EEChat({ userProfile, user, selectedContact }) {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showRaw, setShowRaw] = useState(false); 
   const messagesEndRef = useRef(null);
 
@@ -819,6 +854,16 @@ function E2EEChat({ userProfile, user, selectedContact }) {
       timestamp: Date.now(),
       isEncrypted: true,
       pending: true
+    };
+
+    const addEmoji = (emoji) => {
+      setNewMessage((current) => `${current}${emoji}`);
+      setShowEmojiPicker(false);
+    };
+
+    const sendSticker = (sticker) => {
+      setShowStickerPicker(false);
+      setNewMessage(sticker);
     };
     setMessages((current) => [...current, optimisticMessage]);
     setNewMessage('');
@@ -919,8 +964,8 @@ function E2EEChat({ userProfile, user, selectedContact }) {
 
             return (
               <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-800 border border-white/10 rounded-full flex flex-shrink-0 items-center justify-center text-zinc-500">
-                  <User size={14} />
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-800 border border-white/10 rounded-full flex flex-shrink-0 items-center justify-center overflow-hidden text-zinc-500">
+                  <Avatar src={isMe ? userProfile?.avatarUrl : msg.authorAvatar} label={msg.authorName} className="h-full w-full" />
                 </div>
                 <div className={`flex flex-col max-w-[85%] md:max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
                   <div className="flex items-baseline gap-2 mb-1.5 px-1">
@@ -956,7 +1001,29 @@ function E2EEChat({ userProfile, user, selectedContact }) {
 
         <div className="p-4 md:p-6 bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 z-10">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSendMessage} className="relative flex items-center group">
+          <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 group">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmojiPicker((open) => !open);
+                setShowStickerPicker(false);
+              }}
+              className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-yellow-300"
+              aria-label="Add emoji"
+            >
+              <Smile size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowStickerPicker((open) => !open);
+                setShowEmojiPicker(false);
+              }}
+              className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-cyan-300"
+              aria-label="Add sticker"
+            >
+              <Sticker size={20} />
+            </button>
             <div className="absolute left-4 text-emerald-500 pointer-events-none transition-transform group-focus-within:scale-110">
               <Lock size={18} />
             </div>
@@ -975,6 +1042,24 @@ function E2EEChat({ userProfile, user, selectedContact }) {
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className={newMessage.trim() ? 'ml-0.5' : ''} />}
             </button>
+            {showEmojiPicker && (
+              <div className="absolute bottom-14 left-0 z-20 grid grid-cols-8 gap-1 rounded-2xl border border-white/10 bg-zinc-900 p-3 shadow-2xl">
+                {['😀', '😂', '😍', '🥳', '🔥', '❤️', '👍', '👏', '😎', '😭', '🤝', '🎉', '✨', '🙌', '💯', '🔐'].map((emoji) => (
+                  <button key={emoji} type="button" onClick={() => addEmoji(emoji)} className="rounded-lg p-1.5 text-xl hover:bg-white/10">
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+            {showStickerPicker && (
+              <div className="absolute bottom-14 left-10 z-20 flex gap-2 rounded-2xl border border-white/10 bg-zinc-900 p-3 shadow-2xl">
+                {['🔥', '❤️', '😂', '🎉', '💯'].map((sticker) => (
+                  <button key={sticker} type="button" onClick={() => sendSticker(sticker)} className="rounded-xl bg-white/5 px-3 py-2 text-2xl hover:bg-cyan-500/20">
+                    {sticker}
+                  </button>
+                ))}
+              </div>
+            )}
           </form>
           <div className="mt-2 md:mt-3 text-center">
             <span className="text-[10px] text-zinc-500 font-mono flex items-center justify-center gap-1">
@@ -1116,13 +1201,25 @@ function ReelsFeed({ user }) {
 }
 
 // --- VIDEO CALL MOCKUP ---
-function VideoCallMockup({ selectedContact }) {
+function VideoCallMockup({ selectedContact, user }) {
   const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const peerRef = useRef(null);
+  const callIdRef = useRef(null);
   const [streamActive, setStreamActive] = useState(false);
   const [error, setError] = useState('');
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [callStarted, setCallStarted] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [callStatus, setCallStatus] = useState('');
+
+  const signal = async (recipientId, type, data = null, callId = callIdRef.current) => {
+    await api('/api/call/signal', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId, type, data, callId })
+    });
+  };
 
   useEffect(() => {
     let activeStream = null;
@@ -1147,6 +1244,74 @@ function VideoCallMockup({ selectedContact }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    const events = new EventSource(`${API_URL}/api/events?userId=${encodeURIComponent(user.uid)}`);
+    events.addEventListener('call', (event) => {
+      const call = JSON.parse(event.data);
+      if (call.recipientId !== user.uid) return;
+      if (call.type === 'invite') {
+        callIdRef.current = call.callId;
+        setIncomingCall(call);
+      } else if (call.type === 'offer') {
+        setIncomingCall((current) => ({ ...(current || {}), ...call, offer: call.data }));
+      } else if (call.type === 'accept') {
+        setCallStarted(true);
+        setCallStatus('Connecting...');
+      } else if (call.type === 'answer' && peerRef.current) {
+        peerRef.current.setRemoteDescription(new RTCSessionDescription(call.data));
+        setCallStatus('Connected');
+      } else if (call.type === 'ice' && peerRef.current && call.data) {
+        peerRef.current.addIceCandidate(new RTCIceCandidate(call.data)).catch(() => {});
+      } else if (call.type === 'end' || call.type === 'reject') {
+        setCallStarted(false);
+        setCallStatus(call.type === 'reject' ? 'Call declined' : '');
+        peerRef.current?.close();
+        peerRef.current = null;
+      }
+    });
+    return () => events.close();
+  }, [user]);
+
+  const createPeer = (contact, callId) => {
+    const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    peerRef.current = peer;
+    callIdRef.current = callId;
+    const stream = localVideoRef.current?.srcObject;
+    stream?.getTracks().forEach((track) => peer.addTrack(track, stream));
+    peer.ontrack = (event) => {
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
+    };
+    peer.onicecandidate = (event) => {
+      if (event.candidate) signal(contact.uid, 'ice', event.candidate.toJSON(), callId);
+    };
+    peer.onconnectionstatechange = () => {
+      if (['connected', 'completed'].includes(peer.connectionState)) setCallStatus('Connected');
+      if (['failed', 'disconnected'].includes(peer.connectionState)) setCallStatus('Connection lost');
+    };
+    return peer;
+  };
+
+  const startCall = async () => {
+    if (!selectedContact || !localVideoRef.current?.srcObject) return;
+    const callId = crypto.randomUUID();
+    const peer = createPeer(selectedContact, callId);
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    await signal(selectedContact.uid, 'invite', null, callId);
+    await signal(selectedContact.uid, 'offer', offer, callId);
+    setCallStarted(true);
+    setCallStatus('Ringing...');
+  };
+
+  const endCall = async () => {
+    if (selectedContact) await signal(selectedContact.uid, 'end');
+    peerRef.current?.close();
+    peerRef.current = null;
+    setCallStarted(false);
+    setCallStatus('');
+  };
+
   const toggleTrack = (kind, stateDispatcher, currentState) => {
     if (!localVideoRef.current?.srcObject) return;
     const stream = localVideoRef.current.srcObject;
@@ -1160,7 +1325,7 @@ function VideoCallMockup({ selectedContact }) {
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/10 to-zinc-950 pointer-events-none"></div>
 
       <div className="flex-1 relative rounded-3xl md:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 shadow-2xl flex items-center justify-center z-10">
-        {!selectedContact && (
+        {!selectedContact && !incomingCall && (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-zinc-950/95 p-8 text-center">
             <div>
               <Phone className="mx-auto mb-4 h-14 w-14 text-violet-400/60" />
@@ -1179,6 +1344,7 @@ function VideoCallMockup({ selectedContact }) {
           muted 
           className={`w-full h-full object-cover transition-opacity duration-700 ${streamActive && camOn ? 'opacity-100' : 'opacity-0'}`}
         />
+        <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
 
         {(!streamActive || !camOn) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-zinc-900/90 backdrop-blur-xl">
@@ -1199,7 +1365,7 @@ function VideoCallMockup({ selectedContact }) {
                  ? callStarted
                    ? `Connected to @${selectedContact.username}`
                    : `Ready to call @${selectedContact.username}`
-                 : 'Select a user to call'}
+                 : callStatus || 'Select a user to call'}
              </p>
            </div>
         </div>
@@ -1222,7 +1388,7 @@ function VideoCallMockup({ selectedContact }) {
           <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2"></div>
 
           <button
-            onClick={() => setCallStarted((started) => !started)}
+            onClick={callStarted ? endCall : startCall}
             disabled={!selectedContact}
             className={`px-6 md:px-8 py-3 md:py-4 rounded-full text-white font-bold transition-all hover:scale-105 shadow-[0_0_20px_rgba(225,29,72,0.4)] flex items-center gap-2 text-sm md:text-base disabled:cursor-not-allowed disabled:opacity-40 ${
               callStarted ? 'bg-rose-600 hover:bg-rose-500' : 'bg-emerald-600 hover:bg-emerald-500'
@@ -1232,6 +1398,30 @@ function VideoCallMockup({ selectedContact }) {
             <span className="hidden md:inline">{callStarted ? 'End' : 'Call'}</span>
           </button>
         </div>
+        {incomingCall && (
+          <div className="absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-2xl border border-cyan-400/30 bg-zinc-900 p-4 shadow-2xl">
+            <p className="text-sm font-bold text-white">Incoming call</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
+                onClick={async () => {
+                  const peer = createPeer({ uid: incomingCall.senderId }, incomingCall.callId);
+                  if (incomingCall.offer) {
+                    await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+                    const answer = await peer.createAnswer();
+                    await peer.setLocalDescription(answer);
+                    await signal(incomingCall.senderId, 'answer', answer, incomingCall.callId);
+                  }
+                  await signal(incomingCall.senderId, 'accept', null, incomingCall.callId);
+                  setIncomingCall(null);
+                  setCallStarted(true);
+                  setCallStatus('Connecting...');
+                }}
+              >Accept</button>
+              <button className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-bold text-white" onClick={async () => { await signal(incomingCall.senderId, 'reject', null, incomingCall.callId); setIncomingCall(null); }}>Decline</button>
+            </div>
+          </div>
+        )}
 
         <div className="absolute top-4 left-4 md:top-8 md:left-8 bg-zinc-900/80 backdrop-blur-xl px-4 md:px-5 py-2 md:py-2.5 rounded-full border border-white/20 z-20 shadow-lg">
           <div className="flex items-center gap-2.5">

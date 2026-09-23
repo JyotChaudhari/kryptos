@@ -40,7 +40,10 @@ app.put('/api/profile', requireUser, (req, res) => {
   const username = String(req.body?.username || '').trim().toLowerCase().replace(/^@/, '').replace(/\s+/g, '_');
   if (!/^[a-z0-9_]{3,20}$/.test(username)) return res.status(400).json({ error: 'Use 3-20 letters, numbers, or underscores.' });
   for (const [uid, profile] of users) if (uid !== req.userId && profile.username === username) return res.status(409).json({ error: 'That username is already taken.' });
-  const profile = { uid: req.userId, username, displayName: username, ...(users.get(req.userId) || {}), updatedAt: Date.now() };
+  const avatarUrl = typeof req.body?.avatarUrl === 'string' && req.body.avatarUrl.length <= 200000
+    ? req.body.avatarUrl
+    : (users.get(req.userId)?.avatarUrl || null);
+  const profile = { uid: req.userId, username, displayName: username, ...(users.get(req.userId) || {}), avatarUrl, updatedAt: Date.now() };
   users.set(req.userId, profile);
   publish('profile', profile);
   res.json(profile);
@@ -92,8 +95,19 @@ app.get('/api/chat/threads', requireUser, (req, res) => {
 app.post('/api/chat', requireUser, (req, res) => {
   const recipientId = String(req.body?.recipientId || '');
   if (!recipientId || !String(req.body?.text || '').trim()) return res.status(400).json({ error: 'Recipient and message are required.' });
-  const message = { id: id(), authorId: req.userId, authorName: users.get(req.userId)?.username || 'anonymous', recipientId, recipientName: users.get(recipientId)?.username || null, text: String(req.body.text), timestamp: Date.now(), isEncrypted: Boolean(req.body.isEncrypted) };
+  const author = users.get(req.userId);
+  const recipient = users.get(recipientId);
+  const message = { id: id(), authorId: req.userId, authorName: author?.username || 'anonymous', authorAvatar: author?.avatarUrl || null, recipientId, recipientName: recipient?.username || null, recipientAvatar: recipient?.avatarUrl || null, text: String(req.body.text), timestamp: Date.now(), isEncrypted: Boolean(req.body.isEncrypted) };
   messages.push(message); publish('message', message); res.status(201).json(message);
+});
+app.post('/api/call/signal', requireUser, (req, res) => {
+  const recipientId = String(req.body?.recipientId || '');
+  const type = String(req.body?.type || '');
+  if (!recipientId || !['invite', 'accept', 'reject', 'offer', 'answer', 'ice', 'end'].includes(type)) {
+    return res.status(400).json({ error: 'Invalid call signal.' });
+  }
+  publish('call', { type, callId: String(req.body?.callId || id()), senderId: req.userId, recipientId, data: req.body?.data || null });
+  res.sendStatus(204);
 });
 app.get('/api/events', requireUser, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive'); res.flushHeaders();
