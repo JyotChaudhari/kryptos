@@ -90,6 +90,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home'); 
   const [selectedContact, setSelectedContact] = useState(null);
   const [messageNotice, setMessageNotice] = useState(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     const initSession = async () => {
@@ -178,6 +179,36 @@ export default function App() {
         setSelectedContact={setSelectedContact}
         onLogout={handleLogout}
       />
+
+      {mobileSearchOpen && (
+        <div className="md:hidden fixed inset-0 z-[60] bg-black/75 p-4 pt-16 backdrop-blur-sm">
+          <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div>
+                <h2 className="font-bold text-white">Find people</h2>
+                <p className="text-xs text-zinc-500">Search by username to start chatting</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="rounded-lg px-3 py-1 text-2xl leading-none text-zinc-400 hover:bg-white/10 hover:text-white"
+                aria-label="Close username search"
+              >
+                ×
+              </button>
+            </div>
+            <UsernameSearch
+              setActiveTab={(tab) => {
+                setActiveTab(tab);
+                setMobileSearchOpen(false);
+              }}
+              setSelectedContact={setSelectedContact}
+              currentUserId={userProfile?.uid}
+              mobile
+            />
+          </div>
+        </div>
+      )}
       
       {/* Main Content Area */}
       <main className="flex-1 relative flex flex-col h-full bg-black/40 shadow-inner pb-16 md:pb-0">
@@ -188,7 +219,11 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onSearch={() => setMobileSearchOpen(true)}
+      />
     </div>
   );
 }
@@ -393,7 +428,7 @@ function ProfileSettings({ userProfile, setUserProfile, onClose }) {
   );
 }
 
-function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId }) {
+function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId, mobile = false }) {
   const [term, setTerm] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -423,7 +458,7 @@ function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId }) {
   };
 
   return (
-    <div className="mx-4 mt-6 border-t border-white/5 pt-5">
+    <div className={mobile ? 'p-4' : 'mx-4 mt-6 border-t border-white/5 pt-5'}>
       <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
         Find a user
       </p>
@@ -475,11 +510,12 @@ function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId }) {
   );
 }
 
-function BottomNav({ activeTab, setActiveTab }) {
+function BottomNav({ activeTab, setActiveTab, onSearch }) {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 z-50 px-6 py-3 flex justify-between items-center pb-safe">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 z-50 px-4 py-3 flex justify-between items-center pb-safe">
       <MobileNavItem icon={<Home size={24} />} isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
       <MobileNavItem icon={<MessageSquare size={24} />} isActive={activeTab === 'chat'} onClick={() => setActiveTab('chat')} />
+      <MobileNavItem icon={<Search size={24} />} isActive={false} onClick={onSearch} label="Search users" />
       <MobileNavItem icon={<Video size={24} />} isActive={activeTab === 'reels'} onClick={() => setActiveTab('reels')} />
       <MobileNavItem icon={<Phone size={24} />} isActive={activeTab === 'call'} onClick={() => setActiveTab('call')} />
     </div>
@@ -507,9 +543,9 @@ function NavItem({ icon, label, isActive, onClick }) {
   );
 }
 
-function MobileNavItem({ icon, isActive, onClick }) {
+function MobileNavItem({ icon, isActive, onClick, label }) {
   return (
-    <button onClick={onClick} className={`p-3 rounded-full transition-all ${isActive ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+    <button onClick={onClick} aria-label={label} className={`p-3 rounded-full transition-all ${isActive ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
       {icon}
     </button>
   );
