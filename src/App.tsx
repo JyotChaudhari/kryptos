@@ -462,15 +462,24 @@ function UsernameSearch({ setActiveTab, setSelectedContact, currentUserId, mobil
       <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
         Find a user
       </p>
-      <form onSubmit={searchUsers} className="relative">
-        <Search size={15} className="absolute left-3 top-3 text-zinc-500" />
-        <input
-          value={term}
-          onChange={(event) => setTerm(event.target.value)}
-          placeholder="@username"
-          className="w-full rounded-xl border border-white/10 bg-zinc-900 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition focus:border-cyan-500 placeholder:text-zinc-600"
-          aria-label="Search username"
-        />
+      <form onSubmit={searchUsers} className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search size={15} className="absolute left-3 top-3 text-zinc-500" />
+          <input
+            value={term}
+            onChange={(event) => setTerm(event.target.value)}
+            placeholder="@username"
+            className="w-full rounded-xl border border-white/10 bg-zinc-900 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition focus:border-cyan-500 placeholder:text-zinc-600"
+            aria-label="Search username"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={searching || term.trim().length < 2}
+          className="rounded-xl bg-cyan-500 px-3 text-xs font-bold text-zinc-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {searching ? 'Searching...' : 'Search'}
+        </button>
       </form>
       {searching && <p className="mt-2 px-1 text-xs text-zinc-500">Searching...</p>}
       {error && !searching && <p className="mt-2 px-1 text-xs text-amber-400">{error}</p>}
