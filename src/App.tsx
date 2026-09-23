@@ -856,15 +856,6 @@ function E2EEChat({ userProfile, user, selectedContact }) {
       pending: true
     };
 
-    const addEmoji = (emoji) => {
-      setNewMessage((current) => `${current}${emoji}`);
-      setShowEmojiPicker(false);
-    };
-
-    const sendSticker = (sticker) => {
-      setShowStickerPicker(false);
-      setNewMessage(sticker);
-    };
     setMessages((current) => [...current, optimisticMessage]);
     setNewMessage('');
     setSendError('');
@@ -881,15 +872,32 @@ function E2EEChat({ userProfile, user, selectedContact }) {
     }
   };
 
+  const addEmoji = (emoji) => {
+    setNewMessage((current) => `${current}${emoji}`);
+    setShowEmojiPicker(false);
+  };
+
+  const sendSticker = (sticker) => {
+    setNewMessage(sticker);
+    setShowStickerPicker(false);
+  };
+
   return (
     <div className="h-full flex flex-col bg-zinc-950/50 backdrop-blur-md relative">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-600/5 blur-[150px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] bg-violet-600/5 blur-[150px] rounded-full pointer-events-none"></div>
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-72 shrink-0 border-r border-white/10 bg-zinc-950/80 md:block">
-          <div className="border-b border-white/10 p-5">
-            <h2 className="text-xl font-bold text-white">Messages</h2>
-            <p className="mt-1 text-xs text-zinc-500">Your conversations</p>
+          <div className="border-b border-white/10 bg-gradient-to-br from-violet-500/10 to-transparent p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Private space</p>
+                <h2 className="mt-1 text-xl font-bold text-white">Messages</h2>
+              </div>
+              <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">LIVE</div>
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">Encrypted conversations, made simple.</p>
           </div>
           <div className="max-h-full overflow-y-auto">
             {threads.length === 0 ? (
@@ -915,7 +923,7 @@ function E2EEChat({ userProfile, user, selectedContact }) {
       {/* Chat Header */}
       <div className="px-4 md:px-6 py-4 border-b border-white/10 bg-zinc-950/90 backdrop-blur-xl z-10 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center shadow-inner">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-emerald-400/20 to-cyan-400/10 border border-emerald-400/20 rounded-2xl flex items-center justify-center shadow-inner">
             <ShieldCheck className="text-emerald-400 w-5 h-5 md:w-6 md:h-6" />
           </div>
           <div>
@@ -950,12 +958,14 @@ function E2EEChat({ userProfile, user, selectedContact }) {
         </div>
       ) : (
       <>
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-6 custom-scrollbar z-10">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-5 custom-scrollbar z-10">
         {messages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 text-center">
-            <Lock className="w-16 h-16 mb-4 opacity-20" />
-            <p className="font-medium">Welcome to the secure channel.</p>
-            <p className="text-sm mt-1">All messages are encrypted before leaving your device.</p>
+          <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-cyan-400/20 bg-cyan-400/10 shadow-[0_0_40px_rgba(34,211,238,0.08)]">
+            <Lock className="h-8 w-8 text-cyan-300/70" />
+          </div>
+          <p className="font-semibold text-zinc-300">Your private channel is ready.</p>
+          <p className="text-sm mt-1 max-w-xs">Send a message, emoji, or sticker to start the conversation.</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -974,10 +984,10 @@ function E2EEChat({ userProfile, user, selectedContact }) {
                   </div>
                   
                   <div className="relative group">
-                    <div className={`px-4 md:px-5 py-2.5 md:py-3 rounded-2xl text-[14px] md:text-[15px] shadow-lg leading-relaxed ${
+                    <div className={`px-4 md:px-5 py-2.5 md:py-3 rounded-2xl text-[14px] md:text-[15px] shadow-lg leading-relaxed transition-transform ${
                       isMe 
-                        ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-tr-sm shadow-violet-900/30 border border-violet-400/20' 
-                        : 'bg-zinc-800/80 backdrop-blur-sm border border-white/10 text-zinc-100 rounded-tl-sm'
+                        ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-tr-sm shadow-violet-900/30 border border-violet-400/20 hover:-translate-y-0.5' 
+                        : 'bg-zinc-800/80 backdrop-blur-sm border border-white/10 text-zinc-100 rounded-tl-sm hover:-translate-y-0.5'
                     }`}>
                       {showRaw && msg.isEncrypted ? (
                         <span className="font-mono text-xs break-all opacity-70 text-emerald-300">{msg.text}</span>
@@ -999,16 +1009,17 @@ function E2EEChat({ userProfile, user, selectedContact }) {
         <div ref={messagesEndRef} className="h-4" />
         </div>
 
-        <div className="p-4 md:p-6 bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 z-10">
+        <div className="p-3 md:p-5 bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 z-10">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 group">
+          {sendError && <p className="mb-2 px-2 text-xs text-rose-400">{sendError}</p>}
+          <form onSubmit={handleSendMessage} className="relative flex items-center gap-1.5 rounded-2xl border border-white/10 bg-zinc-900/90 p-1.5 shadow-[0_10px_35px_rgba(0,0,0,0.25)] group focus-within:border-cyan-400/40 focus-within:ring-2 focus-within:ring-cyan-400/10">
             <button
               type="button"
               onClick={() => {
                 setShowEmojiPicker((open) => !open);
                 setShowStickerPicker(false);
               }}
-              className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-yellow-300"
+              className="shrink-0 rounded-xl p-2 text-zinc-400 transition hover:bg-yellow-400/10 hover:text-yellow-300"
               aria-label="Add emoji"
             >
               <Smile size={20} />
@@ -1019,31 +1030,27 @@ function E2EEChat({ userProfile, user, selectedContact }) {
                 setShowStickerPicker((open) => !open);
                 setShowEmojiPicker(false);
               }}
-              className="rounded-full p-2 text-zinc-400 transition hover:bg-white/10 hover:text-cyan-300"
+              className="shrink-0 rounded-xl p-2 text-zinc-400 transition hover:bg-cyan-400/10 hover:text-cyan-300"
               aria-label="Add sticker"
             >
               <Sticker size={20} />
             </button>
-            <div className="absolute left-4 text-emerald-500 pointer-events-none transition-transform group-focus-within:scale-110">
-              <Lock size={18} />
-            </div>
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type an encrypted message..."
-              className="w-full bg-zinc-900 border border-white/10 rounded-full py-3.5 md:py-4 pl-12 pr-14 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500/50 focus:bg-zinc-900 transition-all shadow-inner placeholder-zinc-600"
+              className="min-w-0 flex-1 bg-transparent py-2.5 px-2 text-zinc-100 text-sm focus:outline-none placeholder-zinc-600"
             />
-            {sendError && <p className="mb-2 px-3 text-xs text-rose-400">{sendError}</p>}
             <button 
               type="submit" 
               disabled={!newMessage.trim() || sending}
-              className="absolute right-2 p-2.5 bg-white hover:bg-cyan-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-black rounded-full transition-all shadow-lg"
+              className="shrink-0 rounded-xl bg-white p-2.5 text-black shadow-lg transition-all hover:bg-cyan-400 disabled:bg-zinc-800 disabled:text-zinc-600"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className={newMessage.trim() ? 'ml-0.5' : ''} />}
             </button>
             {showEmojiPicker && (
-              <div className="absolute bottom-14 left-0 z-20 grid grid-cols-8 gap-1 rounded-2xl border border-white/10 bg-zinc-900 p-3 shadow-2xl">
+              <div className="absolute bottom-16 left-0 z-20 grid grid-cols-8 gap-1 rounded-2xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur-xl">
                 {['😀', '😂', '😍', '🥳', '🔥', '❤️', '👍', '👏', '😎', '😭', '🤝', '🎉', '✨', '🙌', '💯', '🔐'].map((emoji) => (
                   <button key={emoji} type="button" onClick={() => addEmoji(emoji)} className="rounded-lg p-1.5 text-xl hover:bg-white/10">
                     {emoji}
@@ -1052,7 +1059,7 @@ function E2EEChat({ userProfile, user, selectedContact }) {
               </div>
             )}
             {showStickerPicker && (
-              <div className="absolute bottom-14 left-10 z-20 flex gap-2 rounded-2xl border border-white/10 bg-zinc-900 p-3 shadow-2xl">
+              <div className="absolute bottom-16 left-10 z-20 flex gap-2 rounded-2xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur-xl">
                 {['🔥', '❤️', '😂', '🎉', '💯'].map((sticker) => (
                   <button key={sticker} type="button" onClick={() => sendSticker(sticker)} className="rounded-xl bg-white/5 px-3 py-2 text-2xl hover:bg-cyan-500/20">
                     {sticker}

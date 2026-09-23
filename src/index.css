@@ -12,6 +12,8 @@ body,
 
 body {
   background: #09090b;
+  color: #f4f4f5;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 button,
@@ -23,4 +25,23 @@ textarea {
 * {
   scrollbar-width: thin;
   scrollbar-color: #3f3f46 transparent;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+  color: #fff;
+}
+
+button {
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
