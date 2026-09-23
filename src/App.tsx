@@ -221,7 +221,7 @@ export default function App() {
       )}
       
       {/* Main Content Area */}
-      <main className="flex-1 relative flex flex-col h-full bg-black/40 shadow-inner pb-16 md:pb-0">
+      <main className="app-main flex-1 relative flex flex-col h-full bg-black/40 shadow-inner pb-16 md:pb-0">
         {activeTab === 'home' && <HomeFeed userProfile={userProfile} user={user} />}
         {activeTab === 'chat' && <E2EEChat userProfile={userProfile} user={user} selectedContact={selectedContact} />}
         {activeTab === 'reels' && <ReelsFeed user={user} />}
@@ -414,8 +414,8 @@ function ProfileSettings({ userProfile, setUserProfile, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5">
-      <form onSubmit={saveUsername} className="w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5">
+      <form onSubmit={saveUsername} className="modal-card w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl">
         <h2 className="text-lg font-bold text-white">Edit username</h2>
         <p className="mt-1 text-xs text-zinc-500">Like Instagram, this is how people find you.</p>
         <div className="relative mt-5">
@@ -568,7 +568,7 @@ function NavItem({ icon, label, isActive, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+      className={`nav-item flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
         isActive 
           ? 'text-white bg-white/10 font-semibold shadow-inner border border-white/5' 
           : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
@@ -587,7 +587,7 @@ function NavItem({ icon, label, isActive, onClick }) {
 
 function MobileNavItem({ icon, isActive, onClick, label }) {
   return (
-    <button onClick={onClick} aria-label={label} className={`p-3 rounded-full transition-all ${isActive ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+    <button onClick={onClick} aria-label={label} className={`mobile-nav-item p-3 rounded-full transition-all ${isActive ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
       {icon}
     </button>
   );
@@ -973,7 +973,7 @@ function E2EEChat({ userProfile, user, selectedContact }) {
             const displayText = msg.isEncrypted ? decryptMessage(msg.text) : msg.text;
 
             return (
-              <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div key={msg.id} className={`message-row flex gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-zinc-800 border border-white/10 rounded-full flex flex-shrink-0 items-center justify-center overflow-hidden text-zinc-500">
                   <Avatar src={isMe ? userProfile?.avatarUrl : msg.authorAvatar} label={msg.authorName} className="h-full w-full" />
                 </div>
@@ -1085,7 +1085,7 @@ function E2EEChat({ userProfile, user, selectedContact }) {
 
 function MessageNotification({ message, onOpen, onClose }) {
   return (
-    <div className="fixed right-5 top-5 z-[70] w-80 rounded-2xl border border-cyan-400/30 bg-zinc-900 p-4 shadow-2xl">
+    <div className="toast-notification fixed right-5 top-5 z-[70] w-80 rounded-2xl border border-cyan-400/30 bg-zinc-900 p-4 shadow-2xl">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 font-bold text-white">
           {message.authorName?.[0]?.toUpperCase()}
